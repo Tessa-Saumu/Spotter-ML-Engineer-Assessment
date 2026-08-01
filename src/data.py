@@ -75,3 +75,37 @@ def load_validation_cleaned() -> pd.DataFrame:
 def load_december_cleaned() -> pd.DataFrame:
     """Load data/processed/december.csv, written by 02_cleaning.ipynb."""
     return _read_csv(config.DECEMBER_CLEANED_PATH)
+
+
+def chronological_split(
+    df: pd.DataFrame, date_col: str = config.DATE_COL
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """
+    Split a DataFrame into train/tune/test slices using the fixed
+    calendar cutoffs in config.py (decided in 03_eda.ipynb from the
+    real date range and observed drift, not guessed). Every model in
+    the comparison must call this the same way, on the same input, so
+    they're evaluated on identical splits -- never re-split per model.
+
+    Args:
+        df: DataFrame containing date_col. date_col may be a string or
+            datetime dtype; parsed internally either way.
+        date_col: Name of the date column to split on.
+
+    Returns:
+        (train, tune, test) DataFrames, in that order. Row order within
+        each slice is preserved from df; slices are disjoint and their
+        union covers every row whose date falls within
+        [TRAIN_START, TEST_END].
+    """
+    dates = pd.to_datetime(df[date_col])
+    train = df.loc[(dates >= config.TRAIN_START) & (dates <= config.TRAIN_END)]
+    tune = df.loc[(dates >= config.TUNE_START) & (dates <= config.TUNE_END)]
+    test = df.loc[(dates >= config.TEST_START) & (dates <= config.TEST_END)]
+    logger.info(
+        "Chronological split: train=%d (%s-%s), tune=%d (%s-%s), test=%d (%s-%s)",
+        len(train), config.TRAIN_START, config.TRAIN_END,
+        len(tune), config.TUNE_START, config.TUNE_END,
+        len(test), config.TEST_START, config.TEST_END,
+    )
+    return train, tune, test
