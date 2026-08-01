@@ -10,6 +10,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 MODELS_DIR = PROJECT_ROOT / "models"
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 REPORT_DIR = PROJECT_ROOT / "report"
+FIGURES_DIR = PROJECT_ROOT / "figures"
 
 TRAIN_TEST_PATH = DATA_DIR / "train_test.csv"
 VALIDATION_PATH = DATA_DIR / "validation.csv"
