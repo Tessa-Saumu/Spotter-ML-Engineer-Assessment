@@ -60,3 +60,18 @@ def load_validation_template() -> pd.DataFrame:
 def load_december() -> pd.DataFrame:
     """Load december_chart_inputs.csv, unmodified."""
     return _read_csv(config.DECEMBER_PATH)
+
+
+def load_train_test_cleaned() -> pd.DataFrame:
+    """Load data/processed/train_test.csv, written by 02_cleaning.ipynb."""
+    return _read_csv(config.TRAIN_TEST_CLEANED_PATH)
+
+
+def load_validation_cleaned() -> pd.DataFrame:
+    """Load data/processed/validation.csv, written by 02_cleaning.ipynb."""
+    return _read_csv(config.VALIDATION_CLEANED_PATH)
+
+
+def load_december_cleaned() -> pd.DataFrame:
+    """Load data/processed/december.csv, written by 02_cleaning.ipynb."""
+    return _read_csv(config.DECEMBER_CLEANED_PATH)
