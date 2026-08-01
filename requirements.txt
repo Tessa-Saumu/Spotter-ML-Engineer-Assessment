@@ -1,7 +1,16 @@
-matplotlib>=3.8,<4
+# Core data science
 numpy>=1.26,<3
 pandas>=2.0,<3
+
+# Visualization
+matplotlib>=3.8,<4
+
+# Machine learning
 scikit-learn>=1.4,<2
 xgboost>=2.0,<3
-jupyter>=1.0,<2
+
+# Jupyter
+ipykernel>=6.29,<7
+
+# Testing
 pytest>=8.0,<9
