@@ -51,15 +51,69 @@ THEME = {
 }
 
 # Cool-to-warm sequence for heatmaps / choropleth-style gradients,
-# matching the "hot" legend on Spotter's own map view (cool blue-teal
-# through pale neutral to warm orange-red).
-_HEATMAP_COLORS = ["#2E86AB", "#2EC4B6", "#E9E4D0", "#F4A261", "#FF6B6B"]
+# matching the "hot" legend on Spotter's own map view. The midpoint is
+# a dark slate, not a pale neutral -- a light beige midpoint (tried
+# first) measured at ~1.1:1 contrast against light text, effectively
+# invisible; #4A5A61 measures ~6.2:1, comfortably above the 4.5:1
+# readability floor, while still reading as a neutral "between cool and
+# warm" color rather than injecting its own hue into the scale.
+_HEATMAP_COLORS = ["#2E86AB", "#2EC4B6", "#4A5A61", "#F4A261", "#FF6B6B"]
 HEATMAP_CMAP = LinearSegmentedColormap.from_list("spotter_heat", _HEATMAP_COLORS)
 
 # A small qualitative sequence for categorical series (e.g. equipment
-# type) that stays inside the brand palette instead of falling back to
-# Matplotlib defaults.
-QUALITATIVE_PALETTE = ["#2EC4B6", "#F4A261", "#5B8FA8", "#FF6B6B", "#8AA9B8"]
+# type), chosen so each color is clearly separable from the panel
+# background (all measure at least ~5:1 luminance contrast against
+# #102A38) and from each other by hue, not just brightness -- teal,
+# warm orange, and a soft yellow give three colors a reader can
+# distinguish at a glance even with overlapping scatter points. The
+# two grey-blues used in an earlier version measured close to the
+# panel's own luminance and were dropped for exactly that reason.
+QUALITATIVE_PALETTE = ["#2EC4B6", "#F4A261", "#F4D35E", "#FF6B6B", "#5DA9E9"]
+
+
+def _relative_luminance(hex_color: str) -> float:
+    """
+    WCAG relative luminance of a hex color, used to choose readable text
+    color against an arbitrary background (e.g. a heatmap cell whose
+    color depends on its data value, not a fixed theme color).
+
+    Args:
+        hex_color: Color as a "#RRGGBB" hex string.
+
+    Returns:
+        Relative luminance in [0, 1], where 0 is black and 1 is white.
+    """
+    hex_color = hex_color.lstrip("#")
+    r, g, b = (int(hex_color[i : i + 2], 16) / 255 for i in (0, 2, 4))
+
+    def _linearize(channel: float) -> float:
+        return channel / 12.92 if channel <= 0.03928 else ((channel + 0.055) / 1.055) ** 2.4
+
+    r, g, b = _linearize(r), _linearize(g), _linearize(b)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def _readable_text_color(background_hex: str) -> str:
+    """
+    Pick THEME["text"] or THEME["background"] as the text color,
+    whichever has higher contrast against the given background color.
+    Replaces a fixed abs(value) > threshold rule, which only holds for
+    colormaps where every non-extreme cell is dark -- not true once the
+    heatmap's own endpoints (teal, orange) are themselves too bright for
+    light text.
+
+    Args:
+        background_hex: The cell/background color as a "#RRGGBB" hex
+            string.
+
+    Returns:
+        THEME["text"] (light) or THEME["background"] (dark), whichever
+        contrasts more strongly with background_hex.
+    """
+    bg_luminance = _relative_luminance(background_hex)
+    light_contrast = (max(bg_luminance, 0.863) + 0.05) / (min(bg_luminance, 0.863) + 0.05)
+    dark_contrast = (max(bg_luminance, 0.012) + 0.05) / (min(bg_luminance, 0.012) + 0.05)
+    return THEME["text"] if light_contrast >= dark_contrast else THEME["background"]
 
 
 def apply_theme() -> None:
@@ -387,7 +441,11 @@ def plot_correlation_heatmap(
     for i in range(corr.shape[0]):
         for j in range(corr.shape[1]):
             value = corr.values[i, j]
-            text_color = THEME["background"] if abs(value) > 0.55 else THEME["text"]
+            cell_color = HEATMAP_CMAP((value + 1) / 2)  # imshow's vmin=-1/vmax=1 mapping
+            cell_hex = "#{:02X}{:02X}{:02X}".format(
+                int(cell_color[0] * 255), int(cell_color[1] * 255), int(cell_color[2] * 255)
+            )
+            text_color = _readable_text_color(cell_hex)
             ax.text(j, i, f"{value:.2f}", ha="center", va="center", fontsize=8.5, color=text_color)
 
     ax.set_title(title, loc="left", fontsize=13, fontweight="bold", pad=12)
@@ -472,7 +530,7 @@ def plot_scatter(
     ylabel: str = "",
     hue: pd.Series | None = None,
     hue_label: str = "",
-    alpha: float = 0.35,
+    alpha: float = 0.55,
     figsize: tuple[float, float] = (8.0, 5.5),
 ) -> plt.Figure:
     """
@@ -491,8 +549,12 @@ def plot_scatter(
         hue: Optional categorical series (same length as x/y) to color
             points by.
         hue_label: Legend title when hue is given.
-        alpha: Point transparency -- kept low by default since this
-            dataset runs into the tens of thousands of rows.
+        alpha: Point transparency. 0.55 by default -- an earlier, lower
+            default (0.35) combined with grey-blue palette colors close
+            in luminance to the panel background made points hard to
+            see even before accounting for overlap; raised alongside
+            the palette fix below, plus a thin edge stroke on each
+            point for a further contrast boost in dense regions.
         figsize: (width, height) in inches.
 
     Returns:
@@ -507,12 +569,21 @@ def plot_scatter(
         for i, level in enumerate(categories.cat.categories):
             mask = (categories == level).values
             color = QUALITATIVE_PALETTE[i % len(QUALITATIVE_PALETTE)]
-            ax.scatter(np.asarray(x)[mask], np.asarray(y)[mask], s=10, alpha=alpha, color=color, label=str(level), linewidths=0)
+            ax.scatter(
+                np.asarray(x)[mask], np.asarray(y)[mask],
+                s=14, alpha=alpha, color=color, label=str(level),
+                linewidths=0.3, edgecolors=THEME["background"],
+            )
         legend = ax.legend(title=hue_label, loc="upper left", framealpha=0.9)
         if legend.get_title():
             legend.get_title().set_color(THEME["text"])
+        for legend_handle in legend.legend_handles:
+            legend_handle.set_alpha(1.0)
     else:
-        ax.scatter(x, y, s=10, alpha=alpha, color=THEME["primary"], linewidths=0)
+        ax.scatter(
+            x, y, s=14, alpha=alpha, color=THEME["primary"],
+            linewidths=0.3, edgecolors=THEME["background"],
+        )
 
     ax.set_title(title, loc="left", fontsize=13, fontweight="bold", pad=12)
     ax.set_xlabel(xlabel)
@@ -587,6 +658,119 @@ def plot_grouped_box(
     ax.set_ylabel(ylabel)
     ax.grid(axis="y", color=THEME["gridline"], alpha=0.5, linewidth=0.8)
     ax.spines[["top", "right"]].set_visible(False)
+    fig.tight_layout()
+
+    _savefig(fig, stage, filename)
+    return fig
+
+
+def plot_actual_vs_predicted(
+    y_true: pd.Series,
+    y_pred: pd.Series,
+    stage: str,
+    filename: str,
+    title: str = "",
+    axis_label: str = "posted_rate ($)",
+    figsize: tuple[float, float] = (7.0, 7.0),
+) -> plt.Figure:
+    """
+    Actual vs. predicted scatter with a y = x reference line -- points
+    on the line are perfect predictions, points above it are
+    over-predictions, below it are under-predictions.
+
+    Args:
+        y_true: Actual target values.
+        y_pred: Predicted target values, same length/order as y_true.
+        stage: Pipeline stage subfolder to save under, e.g. "modeling".
+        filename: Output filename, including extension.
+        title: Axis title.
+        axis_label: Shared label for both axes (same units on each).
+        figsize: (width, height) in inches. Square by default so the
+            y = x reference line reads at a true 45 degrees.
+
+    Returns:
+        The Matplotlib Figure, already saved to
+        figures/<stage>/<filename>.
+    """
+    logger.info("Plotting actual vs. predicted: %s (n=%d)", title or filename, len(y_true))
+    fig, ax = _new_figure(figsize)
+
+    y_true_arr, y_pred_arr = np.asarray(y_true, dtype=float), np.asarray(y_pred, dtype=float)
+    lo = min(y_true_arr.min(), y_pred_arr.min())
+    hi = max(y_true_arr.max(), y_pred_arr.max())
+
+    ax.plot([lo, hi], [lo, hi], color=THEME["text_muted"], linewidth=1.2, linestyle="--", zorder=2)
+    ax.scatter(
+        y_true_arr, y_pred_arr, s=14, alpha=0.5, color=THEME["primary"],
+        linewidths=0.3, edgecolors=THEME["background"], zorder=3,
+    )
+
+    ax.set_title(title, loc="left", fontsize=13, fontweight="bold", pad=12)
+    ax.set_xlabel(f"actual {axis_label}")
+    ax.set_ylabel(f"predicted {axis_label}")
+    ax.set_xlim(lo, hi)
+    ax.set_ylim(lo, hi)
+    ax.set_aspect("equal", adjustable="box")
+    ax.grid(color=THEME["gridline"], alpha=0.4, linewidth=0.8)
+    ax.spines[["top", "right"]].set_visible(False)
+    fig.tight_layout()
+
+    _savefig(fig, stage, filename)
+    return fig
+
+
+def plot_residuals(
+    y_pred: pd.Series,
+    residual_values: np.ndarray,
+    stage: str,
+    filename: str,
+    title: str = "",
+    xlabel: str = "predicted posted_rate ($)",
+    figsize: tuple[float, float] = (9.0, 5.0),
+) -> plt.Figure:
+    """
+    Residuals-vs-predicted scatter (left) paired with a residual
+    histogram (right) -- the standard pair for checking whether error
+    grows with the predicted value (heteroscedasticity) and whether
+    residuals are centered near zero and roughly symmetric.
+
+    Args:
+        y_pred: Predicted target values.
+        residual_values: Residuals (predicted - actual), same
+            length/order as y_pred -- typically from
+            evaluate.residuals().
+        stage: Pipeline stage subfolder to save under.
+        filename: Output filename, including extension.
+        title: Overall figure title.
+        xlabel: X-axis label for the scatter panel.
+        figsize: (width, height) in inches.
+
+    Returns:
+        The Matplotlib Figure, already saved to
+        figures/<stage>/<filename>.
+    """
+    logger.info("Plotting residuals: %s (n=%d)", title or filename, len(y_pred))
+    fig, (ax_scatter, ax_hist) = _new_figure(figsize, ncols=2)
+
+    ax_scatter.axhline(0, color=THEME["text_muted"], linewidth=1.2, linestyle="--", zorder=2)
+    ax_scatter.scatter(
+        y_pred, residual_values, s=14, alpha=0.5, color=THEME["primary"],
+        linewidths=0.3, edgecolors=THEME["background"], zorder=3,
+    )
+    ax_scatter.set_xlabel(xlabel)
+    ax_scatter.set_ylabel("residual (predicted - actual)")
+    ax_scatter.grid(color=THEME["gridline"], alpha=0.4, linewidth=0.8)
+    ax_scatter.spines[["top", "right"]].set_visible(False)
+
+    ax_hist.hist(residual_values, bins=50, color=THEME["accent"], alpha=0.85)
+    ax_hist.axvline(0, color=THEME["text_muted"], linewidth=1.2, linestyle="--")
+    ax_hist.set_xlabel("residual")
+    ax_hist.set_ylabel("count")
+    ax_hist.grid(axis="y", color=THEME["gridline"], alpha=0.5, linewidth=0.8)
+    ax_hist.spines[["top", "right"]].set_visible(False)
+
+    if title:
+        fig.suptitle(title, fontsize=13, fontweight="bold", color=THEME["text"])
     fig.tight_layout()
 
     _savefig(fig, stage, filename)
