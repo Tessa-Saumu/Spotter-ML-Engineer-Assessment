@@ -8,6 +8,8 @@ matplotlib>=3.8,<4
 # Machine learning
 scikit-learn>=1.4,<2
 xgboost>=2.0,<3
+lightgbm>=4.0,<5
+shap>=0.45,<1
 
 # Jupyter
 ipykernel>=6.29,<7
