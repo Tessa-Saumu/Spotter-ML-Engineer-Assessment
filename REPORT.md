@@ -43,5 +43,4 @@ Local batch, synthetic data, no operational deployment or business impact.
 Historical metrics/cleaning assumptions remain distinct from the verified saved
 artifact inference. Full cleaning-to-training reproduction remains unverified.
 Keep this as an honest temporal modelling case study; do not add an API, tune to
-an old metric, or hide the simpler baseline result. See the updated existing
-gap audit and implementation plan for the bounded remaining publication gates.
+an old metric, or hide the simpler baseline result. The remaining evidence boundaries are summarized in the README and model card.
