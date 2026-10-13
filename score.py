@@ -156,7 +156,7 @@ def main() -> None:
     print(f"Validated {EXPECTED_ROWS:,} final predictions.")
     print("Validated 31 fixed December predictions.")
     print(f"Created chart: {chart}")
-    print("Final validation metrics are calculated by Spotter after submission.")
+    print("Final validation metrics are calculated by the assessment provider after submission.")
 
 
 if __name__ == "__main__":

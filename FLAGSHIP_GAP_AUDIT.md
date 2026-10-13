@@ -1,3 +1,40 @@
+## 2026-10-13 implementation checkpoint — supersedes current-state claims below
+
+Fresh remote source: main `6d97c1c`; original audit and plan are retained below as
+historical records. The previous AI produced them but did not implement their
+five phases. This run completes a smaller recruiter-critical slice:
+
+- Neutral Freight ML landing, neutral brief/Markdown decision summary, provenance
+  and model card. Branded PDF/DOCX and original brief summary are preserved outside
+  the checkout under the parent workspace's `work/spotter-original-materials/`.
+  Notebook markdown and plotting prose are neutralized; numerical outputs are
+  historical and unchanged. Historical output paths and audit remote references
+  are deliberately retained as provenance, so the strict zero-brand gate is open.
+- Confirmed from notebook source: target encoders fit on the entire outer train
+  before inner CV. Updated README/module/notebook wording; no leakage-proof claim.
+  Kept the historical Huber metric and disclosed inherited linear baseline 663.24
+  versus Huber 664.76 RMSE. No tuning, model replacement or holdout reuse.
+- Pinned the observed inference environment separately, added three boundary/
+  real-artifact integration tests, offline inference workflow, generated-output
+  ignore, and corrected task paths. Scorer logic is unchanged; closing label only
+  neutralized.
+
+Executed: saved-artifact inference and supplied format validator passed for
+12,000 validation and 31 December rows; `python -m pytest -q`: 3 passed (including
+after final code/prose edits). No sklearn serialization-version warnings emitted.
+Environment Python 3.12.0, numpy 1.26.4, pandas 2.3.3, sklearn 1.9.0, joblib 1.5.3,
+matplotlib 3.11.0, pytest 8.3.3. This is not a reconstructed training environment,
+a clean-venv check, accuracy check, or hosted-CI pass.
+
+Readiness: credible local portfolio case study with historical metrics qualified;
+flagship publication remains conditional on remote delivery/rename, provider
+material-rights review and strict anonymization choice, hosted CI, and a bounded
+training-reproduction decision. Clean full training parity is unverified. Earlier
+audit fold-local experiment values remain inherited, not rerun here. Existing
+historical DoD boxes below are not auto-marked complete.
+
+---
+
 # Flagship Gap Audit — Freight Rate Prediction
 
 **Project (current name on GitHub):** `Tessa-Saumu/Spotter-ML-Engineer-Assessment`

@@ -1,14 +1,12 @@
 """
 Feature engineering for the freight rate prediction project.
 
-Every function here either derives a feature deterministically from
-columns already present (safe to apply to any split, any time), or
-fits a statistic on one DataFrame (train) and applies it to another
-(tune/test/validation/december) -- never fits and transforms the same
-data in one call, so leakage is structurally impossible to introduce by
-accident. Fitted encoders are returned alongside the transformed
-DataFrame specifically so a caller can re-apply the exact same fitted
-encoder to a different split, rather than re-fitting per split.
+Deterministic features can be applied to any split. Target encoders must
+be fitted only on the training portion for the evaluation being performed.
+Separating fit/apply is useful but does not enforce that boundary: fitting
+on all outer-training rows before inner cross-validation leaks target
+information into its validation folds. The historical notebooks use that
+protocol; their October holdout remains separate from the inner folds.
 
 Every feature built here uses only columns present in every one of
 train_test.csv, validation.csv, and december_chart_inputs.csv (pickup,
@@ -107,10 +105,8 @@ def apply_target_encoder(
 ) -> pd.DataFrame:
     """
     Apply a target encoder fit by fit_target_encoder() to any split.
-    Categories not seen during fitting (shouldn't occur here -- every
-    city in validation.csv and december_chart_inputs.csv also appears
-    in train_test.csv, but checked defensively) fall back to the fitted
-    global mean rather than raising or producing NaN.
+    Categories not seen during fitting fall back to the fitted global mean.
+    The supplied validation set includes cities absent from training.
 
     Args:
         df: DataFrame to transform. Can be the same DataFrame passed to

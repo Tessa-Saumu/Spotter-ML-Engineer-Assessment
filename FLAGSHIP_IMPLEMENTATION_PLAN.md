@@ -1,3 +1,39 @@
+## 2026-10-13 bounded implementation update — active route
+
+This checkpoint updates the existing plan; the original five-phase plan below
+is historical detail. Do not restart it or chase exact old metric parity.
+
+Completed: neutral front door/task/decision summary, artifact provenance/model
+card, truthful inner-CV disclosure and baseline comparison qualification,
+verified saved-artifact inference, three tests, observed inference pins and
+offline CI definition. Old binaries preserved outside the checkout. Tests pass
+locally; no remote edits/pushes/rename or hosted-green claim.
+
+Remaining, in order:
+
+1. Delivery/publication: review the diff, retain neutral supplied-vs-authored
+   attribution, publish it and run hosted inference CI. Rename remote to
+   `freight-rate-ml` per the existing §9 intent and update references when
+   publication is authorized. Determine whether strict removal of historical
+   output paths is necessary; do not silently rewrite provenance. No new license
+   may be inferred for supplied data/validator.
+2. Reproduction gate: choose a bounded fixed-Huber/linear/mean verification on
+   historical splits in an isolated environment, recording baseline comparisons
+   and drift without rerunning large grids. A complete training claim requires
+   cleaning-through-training evidence. Until then README explicitly presents
+   metrics as historical, and artifact inference as the current check.
+3. Final evidence: record hosted CI/run URL and neutral public landing. No API,
+   deployment service, new model search, blanket notebook rerun, or production
+   claim is needed for this case study. Inner-CV limitation may be disclosed;
+   redesigning historical tuning/reselecting on October is outside this slice.
+
+Acceptance: inference contracts hold, contribution boundaries are clear,
+historical/current checks remain distinguished, simpler-baseline result remains
+visible, publication/privacy decisions are resolved. Optional five-phase polish
+is deferred rather than a prerequisite to every recruiter-facing claim.
+
+---
+
 # Flagship Implementation Plan — Freight ML
 
 **Purpose:** repair `Tessa-Saumu/Spotter-ML-Engineer-Assessment` → **Freight ML** (`freight-rate-ml`) to satisfy the Flagship Definition of Done in `FLAGSHIP_GAP_AUDIT.md` §13, with the minimum engineering that actually closes the identified gaps.
