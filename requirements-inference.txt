@@ -1,0 +1,8 @@
+# Verified artifact-inference environment, Python 3.12, 2026-10-13.
+# Historical training environment was not reconstructed.
+numpy==1.26.4
+pandas==2.3.3
+scikit-learn==1.9.0
+joblib==1.5.3
+matplotlib==3.11.0
+pytest==8.3.3

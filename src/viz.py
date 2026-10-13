@@ -7,11 +7,8 @@ display it inline. Nothing in this module makes a modeling or cleaning
 decision -- it only renders whatever data it is given. Deciding what a
 plot means belongs in the notebook that calls it, not here.
 
-Visual language is deliberately modeled on Spotter's own market
-intelligence dashboard (dark navy, teal-forward, warm orange accent) --
-see the THEME constants below -- so figures produced here read as an
-extension of the product this model would actually feed, not a generic
-notebook plot.
+The shared dark technical theme uses navy, teal and orange accents.
+The palette is presentation only and conveys no provider affiliation.
 """
 from __future__ import annotations
 
@@ -30,9 +27,9 @@ logger = logging.getLogger(__name__)
 DEFAULT_DPI = 150
 
 # --------------------------------------------------------------------
-# Spotter brand theme
+# shared dark theme
 # --------------------------------------------------------------------
-# Pulled directly from the Spotter Lens dashboard: deep navy background,
+# Pulled directly from the shared technical palette: deep navy background,
 # a slightly lighter navy for panels/cards, low-opacity gridlines, teal
 # as the primary/positive color, soft red for negative, warm orange as
 # the sole accent. Reused as named constants (not hardcoded hex strings
@@ -51,14 +48,14 @@ THEME = {
 }
 
 # Cool-to-warm sequence for heatmaps / choropleth-style gradients,
-# matching the "hot" legend on Spotter's own map view. The midpoint is
+# matching the "hot" legend on the project map view. The midpoint is
 # a dark slate, not a pale neutral -- a light beige midpoint (tried
 # first) measured at ~1.1:1 contrast against light text, effectively
 # invisible; #4A5A61 measures ~6.2:1, comfortably above the 4.5:1
 # readability floor, while still reading as a neutral "between cool and
 # warm" color rather than injecting its own hue into the scale.
 _HEATMAP_COLORS = ["#2E86AB", "#2EC4B6", "#4A5A61", "#F4A261", "#FF6B6B"]
-HEATMAP_CMAP = LinearSegmentedColormap.from_list("spotter_heat", _HEATMAP_COLORS)
+HEATMAP_CMAP = LinearSegmentedColormap.from_list("freight_heat", _HEATMAP_COLORS)
 
 # A small qualitative sequence for categorical series (e.g. equipment
 # type), chosen so each color is clearly separable from the panel
@@ -118,7 +115,7 @@ def _readable_text_color(background_hex: str) -> str:
 
 def apply_theme() -> None:
     """
-    Apply the Spotter-branded dark theme as Matplotlib rcParams for the
+    Apply the shared dark theme as Matplotlib rcParams for the
     current session. Call once per notebook, near the top, before any
     plotting happens. Every function in this module also sets colors
     explicitly per-figure, so this is a safety net (e.g. for any ad hoc
@@ -142,12 +139,12 @@ def apply_theme() -> None:
         "legend.edgecolor": THEME["gridline"],
         "legend.labelcolor": THEME["text"],
     })
-    logger.info("Applied Spotter brand theme to matplotlib rcParams")
+    logger.info("Applied shared dark theme to matplotlib rcParams")
 
 
 def _new_figure(figsize: tuple[float, float], ncols: int = 1, nrows: int = 1):
     """
-    Create a themed Figure/Axes pair (or grid of Axes) with the Spotter
+    Create a themed Figure/Axes pair (or grid of Axes) with the shared
     background/panel colors applied directly, independent of whatever
     apply_theme() has or hasn't set globally.
 
@@ -287,7 +284,7 @@ def plot_trend_line(
 ) -> plt.Figure:
     """
     Smooth line chart for a trend over an ordered axis (typically time),
-    styled after Spotter's own rate-history chart: teal line, subtle
+    styled after the project rate-history chart: teal line, subtle
     fill beneath it, muted gridlines, and the current/last value
     called out with a small label.
 
@@ -351,10 +348,10 @@ def plot_ranked_bars(
 ) -> plt.Figure:
     """
     Horizontal bar chart for rankings (e.g. top cities by rate, top
-    lanes by volume), matching Spotter's own ranked-list dashboard
+    lanes by volume), matching the project ranked-list dashboard
     convention. Bars are sorted descending top-to-bottom; optionally the
     top few can be highlighted in the accent color to draw the eye,
-    mirroring the "hot" emphasis on Spotter's own leaderboard.
+    mirroring the "hot" emphasis on the project leaderboard.
 
     Args:
         categories: Category labels (e.g. city names).
@@ -412,7 +409,7 @@ def plot_correlation_heatmap(
     figsize: tuple[float, float] = (7.5, 6.5),
 ) -> plt.Figure:
     """
-    Cool-to-warm correlation heatmap using the Spotter map-view gradient
+    Cool-to-warm correlation heatmap using the shared map-view gradient
     (cool blue-teal for negative/low, pale neutral for near-zero, warm
     orange-red for positive/high), with correlation values annotated in
     each cell.

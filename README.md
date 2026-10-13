@@ -1,209 +1,87 @@
-# Freight Rate Prediction — Spotter ML Engineer Assessment
+# Freight ML: Freight Rate Regression
 
-Predicts freight linehaul rates (`posted_rate`) from load and lane
-characteristics. See `ASSESSMENT.md` for the original assessment brief
-and `REPORT.docx` for the full decision log, from data
-profiling through final model selection.
+I built this project to estimate freight linehaul rates from load and route
+information. It is a synthetic-data take-home assessment that I have packaged
+as a portfolio case study: clean the inputs, compare simple and more complex
+models, test on a later month, and produce the required batch predictions.
 
-## Problem and contribution
+## What I contributed
 
-This is a synthetic-data, take-home assessment of offline freight-rate regression. My submission includes data profiling/cleaning, baseline and model comparisons, residual analysis, full/reduced-feature Huber pipelines and serialized inference artifacts. The assessment data, brief and `score.py` validator were supplied; I do not claim authorship of those materials or employment at Spotter.
+My work includes data profiling and cleaning, feature engineering, model
+comparisons, error analysis, and two saved Huber regression pipelines. Huber is
+a regression method that reduces the influence of unusually large errors. One
+pipeline uses all available inputs; the other handles the smaller December
+input schema. I used AI assistance for implementation and documentation.
 
-## Evaluation and key finding
+The assessment provider supplied the synthetic data, task brief, templates and
+`score.py` format validator. I do not claim those materials as my own work.
+[Provenance](PROVENANCE.md) explains these boundaries; [the task summary](BRIEF.md)
+describes the required inputs and outputs.
 
-Saved notebook outputs compare a mean predictor and linear baselines with tree and regularized/robust regressors. Huber's recorded August-September tuning RMSE is 624.36; the recorded October holdout RMSE is **664.76**, MAE **177.17**, MAPE **9.40%**, and R² **0.811** on **4,853 rows**. These historical numbers were inspected, not reproduced by retraining for this documentation update. Simple regression was competitive with the more complex alternatives on this assessment.
+## What the evaluation shows
 
-The outer split is chronological: January-July training, August-September tuning, October testing. Target encoders are fitted before the inner model search; fold-local refitting inside `TimeSeriesSplit` has not been established, so the inner search must not be described as fully leakage-proof. The October result is distinct from the unlabeled supplied `validation.csv`, whose predictive performance is unknown.
+I used January-July for training, August-September to compare candidate
+settings, and October as the final held-out month. The saved notebook outputs
+record these October Huber results on **4,853 loads**:
 
-## Limitations
+| Measure | Recorded value | Meaning |
+|---|---:|---|
+| Root mean squared error (RMSE) | 664.76 | Rate error with more weight on large misses |
+| Mean absolute error (MAE) | 177.17 | Average absolute rate error |
+| Mean absolute percentage error (MAPE) | 9.40% | Average percentage error |
+| R-squared | 0.811 | Fit relative to predicting the same mean for every load |
 
-This is a local batch submission with no deployed service, business-impact evidence, automated test suite or CI. Dependencies are not pinned; saved sklearn artifacts may warn or fail under incompatible versions. A clean full training rebuild has not been verified here. Data cleaning includes assumptions about weight sign errors and distance anomalies; these are assessment-specific, not general geographic modelling expertise. Residual plots are provided; delivered SHAP explanations and prediction intervals are not established.
+These are historical results, not a newly retrained model. A separately recorded
+audit comparison found ordinary linear regression at **663.24 RMSE**, slightly
+better than Huber's 664.76. I keep that result visible because this project does
+not establish that the more complex selection improves final-month accuracy.
+The [decision summary](REPORT.md) and [model card](models/MODEL_CARD.md) explain
+the evidence and limitations.
 
-## Setup
+There is also a limitation in the parameter search. I encoded cities and routes
+using average rates from the training data before running inner cross-validation
+(testing candidate settings on smaller training/validation portions). Those
+averages therefore include targets from the inner validation portions. A
+chronological split alone does not prevent this information leakage. The
+historical tuning scores must be read with that limitation; October remained a
+separate outer test month. I have not retuned or selected a new model against it.
 
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-```
+## Try the saved-model workflow
 
-Data files already live under `data/raw/` in this repo. If setting up
-fresh, place the assessment's files there as:
-
-```
-data/raw/train_test.csv
-data/raw/validation.csv
-data/raw/validation_predictions_template.csv
-data/raw/december_chart_inputs.csv
-```
-
-`data/processed/` holds the cleaned versions written by
-`02_cleaning.ipynb` (`train_test.csv`, `validation.csv`,
-`december.csv`) — same filenames, the folder is what marks the
-distinction from `data/raw/`, not a suffix.
-
-The intended training sequence is notebooks `01` through `08`; exact clean-environment reproduction is not established. Committed model/encoder artifacts allow attempting batch inference without retraining (see below).
-
-## Repository structure
-
-```text
-├── .gitignore
-├── ASSESSMENT.md
-├── ASSESSMENT.pdf
-├── README.md
-├── requirements.txt
-├── REPORT.docx                    # Decision log for entire implementation
-├── populate_predictions.py        # Generates predictions for unseen data
-├── score.py                       # Validates output format; no target-based scoring
-│
-├── data
-│   ├── processed                  # Cleaned and model-ready datasets
-│   │   ├── december.csv
-│   │   ├── train_test.csv
-│   │   └── validation.csv
-│   └── raw                        # Original provided datasets
-│       ├── december_chart_inputs.csv
-│       ├── train_test.csv
-│       ├── validation.csv
-│       └── validation_predictions_template.csv
-│
-├── figures
-│   ├── cleaning                   # Data cleaning diagnostics
-│   │   └── weight_sign_flip_check.png
-│   ├── eda                        # Exploratory data analysis figures
-│   │   ├── correlation_matrix.png
-│   │   ├── monthly_mean_posted_rate.png
-│   │   ├── posted_rate_by_equipment.png
-│   │   ├── posted_rate_distribution.png
-│   │   ├── rate_vs_distance.png
-│   │   └── rate_vs_market_index.png
-│   ├── feature_engineering        # Feature engineering visualizations
-│   │   └── lane_target_enc_vs_posted_rate.png
-│   └── modeling                   # Model evaluation plots
-│       ├── 07_huber_actual_vs_predicted.png
-│       ├── 07_huber_residuals.png
-│       ├── baseline_linear_raw_actual_vs_predicted.png
-│       ├── baseline_linear_raw_residuals.png
-│       ├── hist_gradient_boosting_actual_vs_predicted.png
-│       ├── hist_gradient_boosting_residuals.png
-│       ├── huber_test_actual_vs_predicted.png
-│       ├── huber_test_residuals.png
-│       ├── ridge_actual_vs_predicted.png
-│       └── ridge_residuals.png
-│
-├── models                         # Saved trained models and encoders
-│   ├── delivery_encoder.pkl
-│   ├── huber_full.pkl
-│   ├── huber_reduced.pkl
-│   ├── lane_encoder.pkl
-│   └── pickup_encoder.pkl
-│
-├── notebooks
-│   ├── 01_profiling.ipynb         # Structure, validity, and consistency checks (no target-relationship analysis)
-│   ├── 02_cleaning.ipynb          # Data cleaning and preprocessing
-│   ├── 03_eda.ipynb               # Exploratory data analysis and feature relationships
-│   ├── 04_baseline_model.ipynb    # Baseline linear regression model
-│   ├── 05_feature_engineering.ipynb # Feature engineering and encoding
-│   ├── 06_model_comparison.ipynb  # Compare candidate models
-│   ├── 07_model_comparison.ipynb  # Residual analysis and model diagnostics
-│   └── 08_final_model.ipynb       # Train final model and generate predictions
-│
-├── scorer_results
-│   ├── candidate_december.png
-│   ├── december_chart_inputs.csv
-│   └── validation_predictions.csv
-│
-└── src
-    ├── __init__.py
-    ├── config.py                  # Paths, column names, and chronological split cutoffs (single source of truth)
-    ├── data.py                    # Data loading and chronological train/tune/test splitting
-    ├── evaluate.py                # RMSE, MAE, MAPE, and R² evaluation utilities
-    ├── features.py                # Target/lane encoders and cyclical date features
-    ├── profiling.py               # Structural and validity checks used in 01_profiling.ipynb
-    └── viz.py                     # Spotter-branded plotting functions shared across notebooks
-```
-
-## Key decisions (full reasoning in `REPORT.docx`)
-
-- **Chronological split, not random K-fold or shuffled cross-validation.**
-  `train_test.csv` runs 2025-01-01 → 2025-10-31; `validation.csv` runs
-  2025-11-01 → 2025-12-31, with zero overlap — confirmed in profiling,
-  and confirmed to matter in EDA (~10% seasonal drift across the
-  year). Train = Jan–Jul, tune (model/hyperparameter comparison) =
-  Aug–Sep, final test (touched exactly once, in `08_final_model.ipynb`)
-  = Oct. `GridSearchCV` uses `TimeSeriesSplit` internally wherever
-  hyperparameters are tuned, never a shuffled `KFold`.
-- **Two full model comparisons, not one.** The first
-  (`06_model_comparison.ipynb`) tested five models chosen on
-  structural grounds (tabular data favors tree ensembles) — Ridge,
-  Random Forest, LightGBM, HistGradientBoostingRegressor, kNN — and
-  produced a genuinely surprising result: simple linear models matched
-  or beat every tree ensemble. Rather than accept that at face value,
-  a second, targeted comparison (`07_model_comparison.ipynb`) tested
-  the assumption properly — Ridge (L2), Lasso (L1), Elastic Net
-  (L1/L2 blend), Huber (robust to the heteroscedasticity found in
-  every prior notebook), and Ridge with interaction terms, against
-  HistGradientBoostingRegressor as the tree-based reference point.
-  **Huber was selected in the recorded tuning comparison.**
-  Its advantage should be read alongside the linear baseline and the
-  inner-encoding limitation above.
-- **Two models, not one, for the two required output files.**
-  `december_chart_inputs.csv` doesn't include `market_index`,
-  `quote_signal`, or any lat/lon columns. A "full" model, trained on
-  every available feature, produces `validation_predictions.csv`; a
-  separate "reduced" model, trained only on columns present in every
-  file, produces the December forecast. The accuracy cost of the
-  reduced feature set was measured directly (near-zero — RMSE was
-  actually marginally better without the two dropped columns).
-- **Lat/lon excluded from both models.** `distance` correlates 0.9995
-  with the great-circle distance implied by the lat/lon columns (one
-  buggy lane pair aside — corrected in cleaning), so the submission excluded coordinates as potentially redundant;
-  this is a modelling choice, not proof that they contain no additional signal.
-- **Negative weight values** (292 rows, -5,000 to -47,500 — the same
-  order of magnitude as valid weights) are treated as a sign-flip bug
-  and corrected with `abs()`, backed by a direct distribution
-  comparison (`figures/cleaning/weight_sign_flip_check.png`), not
-  asserted from a summary statistic alone.
-- **Two lanes sharing an implausible fallback distance** (Austin↔Lubbock,
-  New Orleans↔Shreveport, both directions — every occurrence carried
-  the identical `distance = 70.0` despite being genuinely different
-  real-world separations) corrected using coordinate-implied distance
-  scaled by the dataset's typical road-inflation ratio.
-- **Missing values** (`weight`, `market_index` — both under 1% in
-  `train_test.csv`, confirmed not clustered by equipment or month) are
-  left as `NaN` through cleaning and imputed inside the modeling
-  pipeline, fit on the train split only, to avoid leakage.
-- **Test-set discipline**: `test` (October) was never touched by
-  `04`–`07`. `08_final_model.ipynb` evaluates Huber's already-frozen
-  configuration on `test` exactly once — RMSE 664.76, MAE 177.17, MAPE
-  9.40%, R² 0.811 — before refitting on all available labeled data for
-  the models that actually ship. This is the honest, reported result;
-  the more optimistic `tune`-based numbers used for model selection
-  are reported alongside it, not in place of it.
-
-## A known limitation
-
-`validation.csv` contains 8 cities (Chicago, Charlotte, Jackson, San
-Diego, Knoxville, Laredo, Norfolk, Allentown) that never appear in
-`train_test.csv`, affecting ~1,447 of 12,000 rows (~12%). This is
-expected — served lanes change over time — and is handled by falling
-back to the fitted encoders' global mean for those specific
-city/lane features; `distance` and `equipment` still drive those
-predictions normally. `populate_predictions.py` reports this in its
-console output every time it runs. See Section 11 of `REPORT.docx`
-for the full discussion.
-
-## Running batch inference and the provided format validator
+Use Python 3.12 from the repository root. A virtual environment is recommended.
 
 ```bash
-python -m pip install -r requirements.txt
+python -m pip install -r requirements-inference.txt
+python -m pytest -q
 python populate_predictions.py --output-dir outputs
 python score.py --predictions outputs/validation_predictions.csv --december-predictions outputs/december_chart_inputs.csv
 ```
 
-`score.py` checks 12,000 prediction rows, required IDs, positive rates and the 31 fixed December inputs. It does not measure predictive accuracy. To inspect the committed outputs without loading the model artifacts:
+The saved-model workflow was checked on 13 October 2026: it produced **12,000
+validation predictions and 31 December predictions**, and the supplied validator
+accepted both files. Three automated tests also passed. The validator checks
+IDs, row counts and positive prediction values; it does **not** measure accuracy,
+because the validation targets are withheld.
 
-```bash
-python score.py --predictions scorer_results/validation_predictions.csv --december-predictions scorer_results/december_chart_inputs.csv --output-dir outputs/format-check
-```
+`data/raw/` contains supplied inputs. `data/processed/` contains the historical
+cleaned inputs used by this workflow. `models/` holds the saved models and
+encoders; `populate_predictions.py` writes new predictions under `outputs/`.
 
-[Recorded residual analysis](figures/modeling/huber_test_residuals.png) · [Final notebook](notebooks/08_final_model.ipynb) · [Decision log](REPORT.docx)
+## Scope and next steps
+
+The notebooks `01` through `08` record the original analysis and training
+sequence. Running saved models is a narrower reproducibility check than
+rebuilding cleaning and training from scratch; that full rebuild has not been
+verified in this portfolio update. `requirements-inference.txt` pins the checked
+inference environment; `requirements.txt` is the broader notebook dependency list.
+
+Unseen cities and routes fall back to the training average in their encoded
+features. Cleaning choices about weight signs and distance anomalies are specific
+to this synthetic assessment. I present this as a local modelling and batch
+inference project, with no operational deployment or measured business impact.
+Hosted continuous integration (CI), which runs checks on GitHub, remains a
+separate verification step.
+
+[Final-model notebook](notebooks/08_final_model.ipynb) ·
+[Recorded residual analysis](figures/modeling/huber_test_residuals.png) ·
+[Decision summary](REPORT.md)
