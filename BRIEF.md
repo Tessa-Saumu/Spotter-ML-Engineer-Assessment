@@ -1,7 +1,7 @@
 # Freight ML task and output contract
 
-Personal synthetic-data assessment submission, with provider identity withheld
-in the portfolio presentation. The provider supplied input CSVs, templates and
+Personal synthetic-data assessment submission with a neutral task summary.
+The repository URL retains its original assessment name. The provider supplied input CSVs, templates and
 the format validator; see [provenance](PROVENANCE.md).
 
 Estimate `posted_rate` from freight/load characteristics. Inputs are under
